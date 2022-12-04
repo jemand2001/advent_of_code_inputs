@@ -1,6 +1,6 @@
 use error_chain::error_chain;
 // use futures::executor::block_on;
-use reqwest::{self, header::HeaderMap};
+use reqwest::{self, header::{HeaderMap, InvalidHeaderValue}};
 use std::{fs::{self, File, read_to_string}, path::{Path, PathBuf}, io::copy};
 use tokio::runtime::Builder;
 
@@ -8,6 +8,7 @@ error_chain! {
     foreign_links {
         Io(std::io::Error);
         Http(reqwest::Error);
+        Header(InvalidHeaderValue);
     }
 }
 
@@ -27,9 +28,10 @@ async fn download(url: String, target: PathBuf) -> Result<()> {
         panic!("No cookie file found! (expected as .env)");
     }
     let contents = read_to_string(env_path)?;
-    let cookie = contents.strip_suffix('\n').unwrap();
+    let cookie = contents.trim();
     let mut headers = HeaderMap::new();
-    headers.insert("Cookie", cookie.parse().unwrap());
+    let cookie_parsed = cookie.parse()?;
+    headers.insert("Cookie", cookie_parsed);
     let client = reqwest::Client::new();
     let response = client.get(url).headers(headers).send().await?;
     let mut file = File::create(target)?;
