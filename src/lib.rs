@@ -9,6 +9,7 @@ error_chain! {
         Io(std::io::Error);
         Http(reqwest::Error);
         Header(InvalidHeaderValue);
+        ParseInt(std::num::ParseIntError);
     }
 }
 
